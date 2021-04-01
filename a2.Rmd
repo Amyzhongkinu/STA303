@@ -1,0 +1,137 @@
+---
+title: "Simple Linear Models for Toronto and Mississauga House Prices"
+author: "XZ9227"
+date: "October 21, 2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r, echo=F,results=F}
+library(ggplot2)
+data1=read.csv("real20.csv")
+set.seed(9227)
+```
+
+
+## I. Exploratory Data Analysis
+
+```{r, echo=F}
+par(mfrow=c(1,2))
+## use the box plot to see if there is any outliers
+boxplot(data1$list ,horizontal=T, xlab="Property list Price in $100,000", main="boxplot of list price 9227")
+boxplot(data1$sold ,horizontal=T, xlab="Property sale Price in $100,000", main="boxplot of sale price 9227")
+```
+
+  In order to describe the data,the box plots of property list price and property sale price are created. The left one is for the list price and we can see that there is a point that extremely far away from others. It is an outlier. The sale price plot on the right shows that there are several points quite far away from other data values.  However, both two plots have right-skewed distribution.\par
+
+
+```{r, echo=F, include=F}
+#find out the Case IDs corresponding to the maximum list price
+data1[which.max(data1$list),]
+data1[which.max(data1$sold),]
+#remove the case
+data=data1[-c(96,112),]
+#randomly select a sample of 200 cases
+data=data[sample(nrow(data1),200), ]
+```
+
+  According to these two plots, we can see that the maximal list price and the maximal sale price are the outliers. Therefore, it is reasonable to remove the cases(Case ID 96 and 112). So I create a subset of the data by removing these two cases.\par
+
+
+```{r, echo=F,message=F,warning=F}
+# scatterplot of sale price and list price
+ggplot(data,aes(list,sold,colour=location))+geom_point()+ggtitle("Scatter plot of Sale price by list price - 9227")+xlab("Property list Price in $100,000")+ ylab("Property Sale Price in $100,000")
+#scatterplot of sale price and taxes
+ggplot(data,aes(taxes,sold,colour=location))+geom_point()+ggtitle("Scatter plot of Sale price by taxes - 9227")+xlab("Property taxes in dollars")+ ylab("Property Sale Price in $100,000")
+```
+
+  Two scatterplots of the response variable-sale price by (i) list price and then (ii) taxes are drawn. In each plot, properties in neighbourhood M and those in neighbourhood T are distinguished. It is seen that the linear trend is stronger between the sale price and list price than between sale price and taxes. Also, a positive correlation is shown in both scatterplots.\par
+
+
+## II. Methods and Model
+
+
+```{r, echo=F,include=F}
+# build linear regression modesl for sale price from list price and get information from the summary tables
+#All data
+lmod=lm(data$sold~data$list)
+summary(lmod)
+0.78485+qt(0.975,196)*0.02787
+0.78485-qt(0.975,196)*0.02787
+0.4024^2
+#location M
+datam=data[data$location=="M",]
+lmodm=lm(datam$sold~datam$list)
+summary(lmodm)
+0.90817 +qt(0.975,86)*0.01250 
+0.90817 -qt(0.975,86)*0.01250 
+0.09728^2
+#location T
+datat=data[data$location=="T",]
+lmodt=lm(datat$sold~datat$list)
+summary(lmodt)
+0.71120+qt(0.975,108)*0.04493 
+0.71120-qt(0.975,108)*0.04493
+0.5176^2
+```
+
+#The table below shows several model summary values.\par
+
+  Three simple linear regressions are built for sale price from list price, one for all data, one for properties of neighbourhood M and another for properties of neighbourhood T. An analysis table is created contains the information getting from the summary table.\par
+
+Regression |      $R^2$     | Estimated intercept$b_0$ | Estimated slope$b_1$ | Estimated variance of errors $\sigma$   | p-value for $H_0: \beta_1=0$ | 95% confidence interval for slope parameter
+-----------|:-----------: |:-----------: |:-----------: |:-----------: |:-----------: |:-----------: |
+All |0.8018 | 0.34369   | 0.78485 |0.1619258 | p < 0.0001 | (0.7298864, 0.8398136)
+Mississauga(M) | 0.984 | 0.11511  | 0.90817 |0.009463398 | p < 0.0001 | (0.8833208, 0.9330192)
+Toronto(T) |0.6988 | 0.53077  | 0.71120 |0.2679098 | p < 0.0001 | (0.6221409, 0.8002591)
+
+\newpage
+#Interpret and compare R^2\par
+  According to the table above, we can see that the $R^2$ for neighbourhood M is 0.984 which is the largest. The $R^2$ for neighbourhood T and  all data are 0.6988 and 0.8018 respectively. For neighbourhood T, it has a smaller $R^2$ which means there is a smaller variation of sale price is explained by the list price in a regression model compared to neighbourhood M. This is also the reason why there is a middle $R^2$ value for all data.\par
+
+
+#pooled two-sample t-test\par
+
+A pooled two-sample t-test is to test whether $\beta_1^M$ is equal to $\beta_1^T$.We need to satisfy four conditions in order to process this test. First it has to be assumed that the two populations among neighbourhood M and neighbourhood T are independent.\par
+
+Then according to the properties of least square estimators,the sample of neighbourhood M and neighbourhood T follows:\par
+\[
+ b_1^M - N(\beta_1^M,\frac{\sigma_M^2}{SXX_M})
+\]
+\[
+b_1^T - N(\beta_1^T,\frac{\sigma_T^2}{SXX_T})
+\]
+while $b_1^M$ and $b_1^T$ are the least square estimators of $\beta_1^M$ and $\beta_1^T$.\par
+
+After that, we need to assume that the two sample are independnt and the two populations have the same variance($\sigma_M^2$ = $\sigma_T^2$ = $\sigma^2$).\par
+
+Under these assumptions, we are able to calculate the test statistic and the p-value in order to determine whether can reject or fail to reject the hypothesis that $\beta_1^M$ is equal to $\beta_1^T$.\par
+
+
+
+
+## III. Discussions and Limitations
+
+#Select one of the 3 fitted models\par
+
+Our basic expression of the models is shown as following:\par
+\[
+y = \beta_0 +\beta_1x + \epsilon
+\]
+while y represents the property sale price, x corresponds to the property list price, $\beta_0$ is intercept, $\beta_1$ is estimate coefficient, $\epsilon$ is random error.\par
+From the analysis table, we can also see that the estimated coefficients are 0.78485, 0.90817, and 0.71120 for all data, neighborhood M, and neighborhood T respectively. These values are not much different from each other. Thus, I use the overall model among the three fitted models. \par
+
+
+\newpage
+# violations of the normal error SLR assumptions of selected model\par
+```{r, echo=F}
+qqnorm(residuals(lmod), main = "QQ plot of the linear model for all data -9227")
+qqline(residuals(lmod), col = "red", lwd = 2)
+```
+   
+    
+  To see if there are any violations of the normal error SLR assumptions for the overall model, a normal QQ plot of the linear model for all data is drawn. In both ends of the Q-Q plot distribution, several points slightly deviate from the straight line while in the centre they follow a straight line. Thus, this distribution is an approximately normal distribution.\par
+
+# two potential numeric predictors\par
+  Home size is one of the potential numeric predictors that could be used to fit a multiple linear regression for sale price. A larger area would positively impact the sale price. Another predictor would be the age of house. Usually, because some parts of the old house may need to be repaired or even replaced, the price of the new house will be higher.\par
